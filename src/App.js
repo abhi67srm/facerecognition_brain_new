@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import Navigation from './components/Navigation/Navigation';
-import Register from './components/Register/Register';
+// import Register from './components/Register/Register';
 import Logo from './components/Logo/Logo';
 import SignIn from './components/SignIn/SignIn';
+import Register from './components/Register/Register';
 import Clarifai from 'clarifai';
 import ImageLinkForm from './components/ ImageLinkForm/ ImageLinkForm';
 import Rank from './components/Rank/Rank';
@@ -34,13 +35,38 @@ class App extends Component {
       input: '',
       imageUrl: '',
       box:{},
-      route: 'signin'
+      route: 'signin',
+      isSignedIn: false,
+      user:{
+        id:'',
+        name:'',
+        email:'',
+        entries:'',
+        joined:''
+      }
     }
   }
 
+  loadUser=  (data)=>{
+      this.setState({user : {
+        id:data.id,
+        name:data.name,
+        email:data.email,
+        entries:data.entries,
+        joined:data.joined
+      }})
+   }
+
+  componentDidMount(){
+    //fetch by default does a get reque
+    fetch('http://localhost:3000')
+    .then(response=>response.json())
+    .then(console.log)
+
+}
+
 calCulateFaceLocation=(data)=>{
   const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-  console.log(clarifaiFace);
   const image = document.getElementById('inputImage');
   const width = Number(image.width);
   const heigth = Number(image.height);
@@ -50,12 +76,14 @@ calCulateFaceLocation=(data)=>{
     topRow: clarifaiFace.top_row * heigth,
     rightCol: width - (clarifaiFace.right_col * width),
     bottomRow: heigth - (clarifaiFace.bottom_row * heigth),
+
+
+
   }
 
 }
 displayFaceBox  = (box)=>{
   this.setState({box: box})
-  console.log(box);
 }
   onInputChange=(event)=>{
     this.setState({input:event.target.value});
@@ -69,6 +97,11 @@ displayFaceBox  = (box)=>{
     .catch(err=>console.log(err));
   }
   onRouteChange=(route)=>{
+    if(route === 'signout'){
+      this.setState({isSignedIn: false})
+    }else if(route === 'home'){
+      this.setState({isSignedIn: true})
+    }
     this.setState({route : route});  
   }
 
@@ -78,15 +111,21 @@ displayFaceBox  = (box)=>{
       <Particles className="particles" 
       params={particleOption}
       />
-        <Navigation onRouteChange={this.onRouteChange}/>
-        {this.state.route === "signin"?
-        <SignIn onRouteChange={this.onRouteChange}/>
-        :<div><Logo />
+        <Navigation isSignedIn={this.state.isSignedIn} onRouteChange={this.onRouteChange}/>
+        {this.state.route === "home"?
+        <div>
+        <Logo />
         <Rank />
         <ImageLinkForm onInputChange={this.onInputChange} onSubmitButton={this.onSubmitButton} />
-       
         <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl} />
-        </div>
+        </div>:
+        (
+          this.state.route === "signin"?
+              <SignIn onRouteChange={this.onRouteChange} />
+              :<Register loadUser={this.loadUser} onRouteChange={this.onRouteChange} />
+
+        )
+              
         }
       </div>
     );
